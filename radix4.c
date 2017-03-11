@@ -19,10 +19,11 @@ float FFT_j[64];
 float exp_r[64];
 float exp_j[64];
 
-// Arrays for intermediate values
-float fr[64];
-float fj[64];
 
+float   rimd0, jimd0,
+        rimd1, jimd1,
+        rimd2, jimd2,
+        rimd3, jimd3;
 
 float pi = 3.1415926535897932384626433832795;
 int n;
@@ -66,10 +67,8 @@ int main()
 {
 
     for (i=0; i<N; i++){
-        fr[i]=i;	// input data fills "fr" array
-
-        fj[i]=0;
-        FFT_r[i]=0; 
+        // input data fills "fr" array
+        FFT_r[i]=i; 
         FFT_j[i]=0;
     }
 
@@ -81,43 +80,52 @@ int main()
             index2 = 32+n;
             index3 = 48+n;
 
-            FFT_r[index0] = m_real(bat_s1r[0], bat_s1j[0],   fr[index0], fj[index0])+
-                    m_real(bat_s1r[1], bat_s1j[1], fr[index1], fj[index1])+
-                    m_real(bat_s1r[2], bat_s1j[2], fr[index2], fj[index2])+
-                    m_real(bat_s1r[3], bat_s1j[3], fr[index3], fj[index3]);
-            FFT_j[index0] = m_im(bat_s1r[0], bat_s1j[0], fr[index0], fj[index0])+
-                    m_im(bat_s1r[1], bat_s1j[1], fr[index1], fj[index1])+
-                    m_im(bat_s1r[2], bat_s1j[2], fr[index2], fj[index2])+
-                    m_im(bat_s1r[3], bat_s1j[3], fr[index3], fj[index3]);
+            rimd0 = FFT_r[index0];
+            jimd0 = FFT_j[index0];
+            rimd1 = FFT_r[index1];
+            jimd1 = FFT_j[index1];
+            rimd2 = FFT_r[index2];
+            jimd2 = FFT_j[index2];
+            rimd3 = FFT_r[index3];
+            jimd3 = FFT_j[index3];
 
-            FFT_r[index1] = m_real(bat_s2r[0], bat_s2j[0], fr[index0], fj[index0])+
-                    m_real(bat_s2r[1], bat_s2j[1], fr[index1], fj[index1])+
-                    m_real(bat_s2r[2], bat_s2j[2],  fr[index2], fj[index2])+
-                    m_real(bat_s2r[3], bat_s2j[3], fr[index3], fj[index3]);
-            FFT_j[index1] = m_im(bat_s2r[0], bat_s2j[0], fr[index0], fj[index0])+
-                    m_im(bat_s2r[1], bat_s2j[1], fr[index1], fj[index1])+
-                    m_im(bat_s2r[2], bat_s2j[2], fr[index2], fj[index2])+
-                    m_im(bat_s2r[3], bat_s2j[3], fr[index3], fj[index3]);
+            FFT_r[index0] = m_real(bat_s1r[0], bat_s1j[0],   rimd0, jimd0)+
+                    m_real(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
+                    m_real(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
+                    m_real(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
+            FFT_j[index0] = m_im(bat_s1r[0], bat_s1j[0], rimd0, jimd0)+
+                    m_im(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
+                    m_im(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
+                    m_im(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
 
-            FFT_r[index2] = m_real(bat_s3r[0], bat_s3j[0], fr[index0], fj[index0])+
-                    m_real(bat_s3r[1], bat_s3j[1], fr[index1], fj[index1])+
-                    m_real(bat_s3r[2], bat_s3j[2], fr[index2], fj[index2])+
-                    m_real(bat_s3r[3], bat_s3j[3], fr[index3], fj[index3]);
-            FFT_j[index2] = m_im(bat_s3r[0], bat_s3j[0], fr[index0], fj[index0])+
-                    m_im(bat_s3r[1], bat_s3j[1], fr[index1], fj[index1])+
-                    m_im(bat_s3r[2], bat_s3j[2], fr[index2], fj[index2])+
-                    m_im(bat_s3r[3], bat_s3j[3], fr[index3], fj[index3]);
+            FFT_r[index1] = m_real(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
+                    m_real(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
+                    m_real(bat_s2r[2], bat_s2j[2],  rimd2, jimd2)+
+                    m_real(bat_s2r[3], bat_s2j[3], rimd3, jimd3);
+            FFT_j[index1] = m_im(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
+                    m_im(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
+                    m_im(bat_s2r[2], bat_s2j[2], rimd2, jimd2)+
+                    m_im(bat_s2r[3], bat_s2j[3], rimd3, jimd3);
 
-            FFT_r[index3] = m_real(bat_s4r[0], bat_s4j[0], fr[index0], fj[index0])+
-                    m_real(bat_s4r[1], bat_s4j[1], fr[index1], fj[index1])+
-                    m_real(bat_s4r[2], bat_s4j[2], fr[index2], fj[index2])+
-                    m_real(bat_s4r[3], bat_s4j[3], fr[index3], fj[index3]);
-                    FFT_j[index3] = m_im(bat_s4r[0], bat_s4j[0], fr[index0], fj[index0])+
-                    m_im(bat_s4r[1], bat_s4j[1], fr[index1], fj[index1])+
-                    m_im(bat_s4r[2], bat_s4j[2], fr[index2], fj[index2])+
-                    m_im(bat_s4r[3], bat_s4j[3], fr[index3], fj[index3]);
+            FFT_r[index2] = m_real(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
+                    m_real(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
+                    m_real(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
+                    m_real(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
+            FFT_j[index2] = m_im(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
+                    m_im(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
+                    m_im(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
+                    m_im(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
 
-      		// Multiply results on complex exponents
+            FFT_r[index3] = m_real(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
+                    m_real(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
+                    m_real(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
+                    m_real(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
+                    FFT_j[index3] = m_im(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
+                    m_im(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
+                    m_im(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
+                    m_im(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
+
+            // Multiply results on complex exponents
             if (step!=16){
                 arg = 0;
                 exp_r[index0] = cos(arg);
@@ -136,148 +144,153 @@ int main()
                 exp_j[index3] = sin(-arg);
 
 
-                fr[index0]=FFT_r[index0];
-                fj[index0]=FFT_j[index0];
+                rimd0=FFT_r[index0];
+                jimd0=FFT_j[index0];
 
 
-                fr[index1]=FFT_r[index1];
-                fj[index1]=FFT_j[index1];
+                rimd1=FFT_r[index1];
+                jimd1=FFT_j[index1];
 
 
-                fr[index2]=FFT_r[index2];
-                fj[index2]=FFT_j[index2];
+                rimd2=FFT_r[index2];
+                jimd2=FFT_j[index2];
 
 
-                fr[index3]=FFT_r[index3];
-                fj[index3]=FFT_j[index3];
+                rimd3=FFT_r[index3];
+                jimd3=FFT_j[index3];
 
-                FFT_r[index0] = m_real(fr[index0], fj[index0], exp_r[index0], exp_j[index0]);
-                FFT_j[index0] = m_im(fr[index0], fj[index0], exp_r[index0], exp_j[index0]);
+                FFT_r[index0] = m_real(rimd0, jimd0, exp_r[index0], exp_j[index0]);
+                FFT_j[index0] = m_im(rimd0, jimd0, exp_r[index0], exp_j[index0]);
 
-                FFT_r[index1] = m_real(fr[index1], fj[index1], exp_r[index1], exp_j[index1]);
-                FFT_j[index1] = m_im(fr[index1], fj[index1], exp_r[index1], exp_j[index1]);
+                FFT_r[index1] = m_real(rimd1, jimd1, exp_r[index1], exp_j[index1]);
+                FFT_j[index1] = m_im(rimd1, jimd1, exp_r[index1], exp_j[index1]);
 
-                FFT_r[index2] = m_real(fr[index2], fj[index2], exp_r[index2], exp_j[index2]);
-                FFT_j[index2] = m_im(fr[index2], fj[index2], exp_r[index2], exp_j[index2]);
+                FFT_r[index2] = m_real(rimd2, jimd2, exp_r[index2], exp_j[index2]);
+                FFT_j[index2] = m_im(rimd2, jimd2, exp_r[index2], exp_j[index2]);
 
-                FFT_r[index3] = m_real(fr[index3], fj[index3], exp_r[index3], exp_j[index3]);
-                FFT_j[index3] = m_im(fr[index3], fj[index3], exp_r[index3], exp_j[index3]);
+                FFT_r[index3] = m_real(rimd3, jimd3, exp_r[index3], exp_j[index3]);
+                FFT_j[index3] = m_im(rimd3, jimd3, exp_r[index3], exp_j[index3]);
             }
     }
 
     
-	for (i=0; i<N; i++)
-	    {
-	        fr[i]=FFT_r[i]; // renew source arrays
-	        fj[i]=FFT_j[i];
-	    }
+//
 
     // Perform second stage
-	for (kk=0; kk<N; kk+=16){
-		for (step=1; step<=4; step*=4)
-		{
-		    for (n=0; n<4; n++){
+    for (kk=0; kk<N; kk+=16){
+        for (step=1; step<=4; step*=4)
+        {
+            for (n=0; n<4; n++){
 
-		            index0 = 0/step+n*step+kk;
-		            index1 = 4/step+n*step+kk;
-		            index2 = 8/step+n*step+kk;
-		            index3 = 12/step+n*step+kk;
+                    index0 = 0/step+n*step+kk;
+                    index1 = 4/step+n*step+kk;
+                    index2 = 8/step+n*step+kk;
+                    index3 = 12/step+n*step+kk;
 
-		            FFT_r[index0] = m_real(bat_s1r[0], bat_s1j[0],   fr[index0], fj[index0])+
-		                    m_real(bat_s1r[1], bat_s1j[1], fr[index1], fj[index1])+
-		                    m_real(bat_s1r[2], bat_s1j[2], fr[index2], fj[index2])+
-		                    m_real(bat_s1r[3], bat_s1j[3], fr[index3], fj[index3]);
-		            FFT_j[index0] = m_im(bat_s1r[0], bat_s1j[0], fr[index0], fj[index0])+
-		                    m_im(bat_s1r[1], bat_s1j[1], fr[index1], fj[index1])+
-		                    m_im(bat_s1r[2], bat_s1j[2], fr[index2], fj[index2])+
-		                    m_im(bat_s1r[3], bat_s1j[3], fr[index3], fj[index3]);
+                    rimd0 = FFT_r[index0];
+                    jimd0 = FFT_j[index0];
+                    rimd1 = FFT_r[index1];
+                    jimd1 = FFT_j[index1];
+                    rimd2 = FFT_r[index2];
+                    jimd2 = FFT_j[index2];
+                    rimd3 = FFT_r[index3];
+                    jimd3 = FFT_j[index3];
 
-		            FFT_r[index1] = m_real(bat_s2r[0], bat_s2j[0], fr[index0], fj[index0])+
-		                    m_real(bat_s2r[1], bat_s2j[1], fr[index1], fj[index1])+
-		                    m_real(bat_s2r[2], bat_s2j[2], fr[index2], fj[index2])+
-		                    m_real(bat_s2r[3], bat_s2j[3],  fr[index3], fj[index3]);
-		            FFT_j[index1] = m_im(bat_s2r[0], bat_s2j[0], fr[index0], fj[index0])+
-		                    m_im(bat_s2r[1], bat_s2j[1], fr[index1], fj[index1])+
-		                    m_im(bat_s2r[2], bat_s2j[2], fr[index2], fj[index2])+
-		                    m_im(bat_s2r[3], bat_s2j[3], fr[index3], fj[index3]);
+                    FFT_r[index0] = m_real(bat_s1r[0], bat_s1j[0],   rimd0, jimd0)+
+                            m_real(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
+                            m_real(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
+                            m_real(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
+                    FFT_j[index0] = m_im(bat_s1r[0], bat_s1j[0], rimd0, jimd0)+
+                            m_im(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
+                            m_im(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
+                            m_im(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
 
-		            FFT_r[index2] = m_real(bat_s3r[0], bat_s3j[0], fr[index0], fj[index0])+
-		                    m_real(bat_s3r[1], bat_s3j[1], fr[index1], fj[index1])+
-		                    m_real(bat_s3r[2], bat_s3j[2], fr[index2], fj[index2])+
-		                    m_real(bat_s3r[3], bat_s3j[3], fr[index3], fj[index3]);
-		            FFT_j[index2] = m_im(bat_s3r[0], bat_s3j[0], fr[index0], fj[index0])+
-		                    m_im(bat_s3r[1], bat_s3j[1], fr[index1], fj[index1])+
-		                    m_im(bat_s3r[2], bat_s3j[2], fr[index2], fj[index2])+
-		                    m_im(bat_s3r[3], bat_s3j[3], fr[index3], fj[index3]);
+                    FFT_r[index1] = m_real(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
+                            m_real(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
+                            m_real(bat_s2r[2], bat_s2j[2], rimd2, jimd2)+
+                            m_real(bat_s2r[3], bat_s2j[3],  rimd3, jimd3);
+                    FFT_j[index1] = m_im(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
+                            m_im(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
+                            m_im(bat_s2r[2], bat_s2j[2], rimd2, jimd2)+
+                            m_im(bat_s2r[3], bat_s2j[3], rimd3, jimd3);
 
-		            FFT_r[index3] = m_real(bat_s4r[0], bat_s4j[0], fr[index0], fj[index0])+
-		                    m_real(bat_s4r[1], bat_s4j[1], fr[index1], fj[index1])+
-		                    m_real(bat_s4r[2], bat_s4j[2], fr[index2], fj[index2])+
-		                    m_real(bat_s4r[3], bat_s4j[3], fr[index3], fj[index3]);
-		            FFT_j[index3] = m_im(bat_s4r[0], bat_s4j[0], fr[index0], fj[index0])+
-		                    m_im(bat_s4r[1], bat_s4j[1], fr[index1], fj[index1])+
-		                    m_im(bat_s4r[2], bat_s4j[2], fr[index2], fj[index2])+
-		                    m_im(bat_s4r[3], bat_s4j[3], fr[index3], fj[index3]);
+                    FFT_r[index2] = m_real(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
+                            m_real(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
+                            m_real(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
+                            m_real(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
+                    FFT_j[index2] = m_im(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
+                            m_im(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
+                            m_im(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
+                            m_im(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
 
-		            // Multiply on complex expornents
-		            if (step!=4){
-		                arg = 0;
-		                exp_r[index0] = cos(arg);
-		                exp_j[index0] = sin(-arg);
+                    FFT_r[index3] = m_real(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
+                            m_real(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
+                            m_real(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
+                            m_real(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
+                    FFT_j[index3] = m_im(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
+                            m_im(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
+                            m_im(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
+                            m_im(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
 
-		                arg = (float)(2*pi*n)/(float)(N/4);
-		                exp_r[index1] = cos(arg);
-		                exp_j[index1] = sin(-arg);
+                    // Multiply on complex expornents
+                    if (step!=4){
+                        arg = 0;
+                        exp_r[index0] = cos(arg);
+                        exp_j[index0] = sin(-arg);
 
-		                arg = arg * 2;
-		                exp_r[index2] = cos(arg);
-		                exp_j[index2] = sin(-arg);
+                        arg = (float)(2*pi*n)/16.0;
+                        exp_r[index1] = cos(arg);
+                        exp_j[index1] = sin(-arg);
 
-		                arg = arg * 3 / 2;
-		                exp_r[index3] = cos(arg);
-		                exp_j[index3] = sin(-arg);
+                        arg = arg * 2;
+                        exp_r[index2] = cos(arg);
+                        exp_j[index2] = sin(-arg);
 
-
-		                fr[index0]=FFT_r[index0];
-		                fj[index0]=FFT_j[index0];
-
-
-		                fr[index1]=FFT_r[index1];
-		                fj[index1]=FFT_j[index1];
-
-
-		                fr[index2]=FFT_r[index2];
-		                fj[index2]=FFT_j[index2];
+                        arg = arg * 3 / 2;
+                        exp_r[index3] = cos(arg);
+                        exp_j[index3] = sin(-arg);
 
 
-		                fr[index3]=FFT_r[index3];
-		                fj[index3]=FFT_j[index3];
-
-		                FFT_r[index0] = m_real(fr[index0], fj[index0], exp_r[index0], exp_j[index0]);
-		                FFT_j[index0] = m_im(fr[index0], fj[index0], exp_r[index0], exp_j[index0]);
-
-		                FFT_r[index1] = m_real(fr[index1], fj[index1], exp_r[index1], exp_j[index1]);
-		                FFT_j[index1] = m_im(fr[index1], fj[index1], exp_r[index1], exp_j[index1]);
-
-		                FFT_r[index2] = m_real(fr[index2], fj[index2], exp_r[index2], exp_j[index2]);
-		                FFT_j[index2] = m_im(fr[index2], fj[index2], exp_r[index2], exp_j[index2]);
-
-		                FFT_r[index3] = m_real(fr[index3], fj[index3], exp_r[index3], exp_j[index3]);
-		                FFT_j[index3] = m_im(fr[index3], fj[index3], exp_r[index3], exp_j[index3]);
-		            }
-		    }
-
-		    // Renew source arrays
-		    for (i=0; i<N/4; i++)
-		    {
-		        fr[i+kk]=FFT_r[i+kk];
-		        fj[i+kk]=FFT_j[i+kk];
-		    }
-		}
-	}
+                        rimd0=FFT_r[index0];
+                        jimd0=FFT_j[index0];
 
 
-	// See results
+                        rimd1=FFT_r[index1];
+                        jimd1=FFT_j[index1];
+
+
+                        rimd2=FFT_r[index2];
+                        jimd2=FFT_j[index2];
+
+
+                        rimd3=FFT_r[index3];
+                        jimd3=FFT_j[index3];
+
+                        FFT_r[index0] = m_real(rimd0, jimd0, exp_r[index0], exp_j[index0]);
+                        FFT_j[index0] = m_im(rimd0, jimd0, exp_r[index0], exp_j[index0]);
+
+                        FFT_r[index1] = m_real(rimd1, jimd1, exp_r[index1], exp_j[index1]);
+                        FFT_j[index1] = m_im(rimd1, jimd1, exp_r[index1], exp_j[index1]);
+
+                        FFT_r[index2] = m_real(rimd2, jimd2, exp_r[index2], exp_j[index2]);
+                        FFT_j[index2] = m_im(rimd2, jimd2, exp_r[index2], exp_j[index2]);
+
+                        FFT_r[index3] = m_real(rimd3, jimd3, exp_r[index3], exp_j[index3]);
+                        FFT_j[index3] = m_im(rimd3, jimd3, exp_r[index3], exp_j[index3]);
+                    }
+            }
+/*
+            // Renew source arrays
+            for (i=0; i<N/4; i++)
+            {
+                fr[i+kk]=FFT_r[i+kk];
+                fj[i+kk]=FFT_j[i+kk];
+            } */
+        }
+    }
+
+
+    // See results
     for (i=0; i<N; i++)
     {
         printf(" %f", FFT_r[i]);
