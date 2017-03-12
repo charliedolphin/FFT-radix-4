@@ -19,7 +19,7 @@ float FFT_j[64];
 float exp_r[64];
 float exp_j[64];
 
-
+// Intermediate values 
 float   rimd0, jimd0,
         rimd1, jimd1,
         rimd2, jimd2,
@@ -279,13 +279,6 @@ int main()
                         FFT_j[index3] = m_im(rimd3, jimd3, exp_r[index3], exp_j[index3]);
                     }
             }
-/*
-            // Renew source arrays
-            for (i=0; i<N/4; i++)
-            {
-                fr[i+kk]=FFT_r[i+kk];
-                fj[i+kk]=FFT_j[i+kk];
-            } */
         }
     }
 
