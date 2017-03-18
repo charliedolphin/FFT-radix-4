@@ -1,83 +1,64 @@
-// radix4.c
-// 64 point FFT radix 4 Algorithm
-// 14.09.2016 by Dmitry Chistyakov 
+// radix4_commonlib.c
+// 4-256 point FFT radix 4 Algorithm
+// 12.10.2016 by Dmitry Chistyakov 
 //
 // Updates:
-//      11.03.2017 - release.
-//      15.03.2017 - added sorting of output data, added preliminary calculation
-// of complex exponents.
+//      12.10.2016 - release.
+//      05.05.2017 - optimized using "dragonfly" operation, reduced code. It has
+// not such speed as algorithms with fixed frame size: at 30 % missing speed. 
+// But it has compact code and size of frame is changed by "POINTS". 
 //*****************************************************************************
 //*****************************************************************************
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
-#include <conio.h>
 
-// Arrays for REAL and IM parts of spectrum
-float FFT_r[64];    
-float FFT_j[64];    
+#define PI      3.1415926535897932384626433832795
+#define POINTS  256 // Size of input data 
 
-// Arrays for REAL and IM parts of complex exponents
-float exp_r[64];
-float exp_j[64];
+// Arrays for Real and Imaginary parts of spectrum
+float fft_r[256];    
+float fft_j[256];    
 
+// Arrays for Real and Imaginary parts of complex exponents
+float exp_r[320];
+float exp_j[320];
+
+// Intermediate results
 float   rimd0, jimd0,
         rimd1, jimd1,
         rimd2, jimd2,
         rimd3, jimd3;
 
+// Variables for cycles
+int16_t i, kk, n, step, count, dis;
+int16_t d = 0;
+int16_t shift;
+int16_t mult;
 
-int i, kk, n, step;
-int N = 64;
-int d = 0;
+// Indexes
+int16_t index0, index1, index2, index3;
 
+// Variables for jumping to another frame size.
+int16_t jumpto16, jumpto64;
 
-
-// REAL coefficients of butterfly
-int bat_s1r[4] = {1, 1, 1, 1};
-int bat_s2r[4] = {1, 0, -1, 0};
-int bat_s3r[4] = {1, -1, 1, -1};
-int bat_s4r[4] = {1, 0, -1, 0};
-
-// IM coefficients of butterfly
-int bat_s1j[4] = {0, 0, 0, 0};
-int bat_s2j[4] = {0, -1, 0, 1};
-int bat_s3j[4] = {0, 0, 0, 0};
-int bat_s4j[4] = {0, 1, 0, -1};
-
-int index0, index1, index2, index3;
-
-// Return REAL part of multiplying
-float m_real (float x1, float y1, float x2, float y2)
-{
-    float result;
-    result = x1*x2-y1*y2;
-    return result;
-}
-
-// Return IM part of multiplying
-float m_im (float x1, float y1, float x2, float y2)
-{
-    float result;
-    result = x1*y2+y1*x2;
-    return result;
-}
-
-void FFT_ExpCalculation()
-{
+// Function for getting table of complex exponents
+void fft_expcalculation(){
     float arg;
-    float pi = 3.1415926535897932384626433832795;
-    int n;
+    uint8_t n;
+    // Calculate exponents for 16 and 64 point stage
     for (n=0; n<16; n++){
         arg = 0;
         exp_r[0+n] = 1;
         exp_j[0+n] = 0;
 
-        arg = (float)(2*pi*n)/64.0;
+        arg = 2*PI*n/64.0;
         exp_r[16+n] = cos(arg); 
         exp_j[16+n] = sin(-arg);
 
-        arg = arg * 2;
+        arg = arg + arg;
         exp_r[32+n] = cos(arg); 
         exp_j[32+n] = sin(-arg);
 
@@ -85,225 +66,212 @@ void FFT_ExpCalculation()
         exp_r[48+n] = cos(arg); 
         exp_j[48+n] = sin(-arg);
     }
+    // Calculate exponents for 256 point stage
+    for (n=0; n<64; n++){
+        arg = 0;
+        exp_r[64+n] = 1;
+        exp_j[64+n] = 0;
+
+        arg = 2*PI*n/256.0;
+        exp_r[128+n] = cos(arg); 
+        exp_j[128+n] = sin(-arg);
+
+        arg = arg + arg;
+        exp_r[192+n] = cos(arg); 
+        exp_j[192+n] = sin(-arg);
+
+        arg = arg * 3 / 2;
+        exp_r[256+n] = cos(arg); 
+        exp_j[256+n] = sin(-arg);
+    }
 }
 
 int main()
-{
-    FFT_ExpCalculation();
-
-    for (i=0; i<N; i++){
-        // input data fills "fr" array
-        FFT_r[i]=i; 
-        FFT_j[i]=0;
+{   
+    // Prepare data before FFT start
+    switch (POINTS){
+        case 4:
+            jumpto16 = 0;
+            jumpto64 = 0;
+        case 16:
+            jumpto16 = 1000;
+            jumpto64 = 1000;
+            break;
+        case 64:
+            jumpto16 = 0;
+            jumpto64 = 1000;
+            break;
+        case 256:
+            jumpto16 = 0;
+            jumpto64 = 0;
+            break;
+        default:
+            return 0;
     }
 
-    // Perform first stage
-    for (n=0; n<16; n++){
+    // Get table of exponents
+    fft_expcalculation();
 
-            index0 = 0+n;
-            index1 = 16+n;
-            index2 = 32+n;
-            index3 = 48+n;
-
-            rimd0 = FFT_r[index0];
-            jimd0 = FFT_j[index0];
-            rimd1 = FFT_r[index1];
-            jimd1 = FFT_j[index1];
-            rimd2 = FFT_r[index2];
-            jimd2 = FFT_j[index2];
-            rimd3 = FFT_r[index3];
-            jimd3 = FFT_j[index3];
-
-            FFT_r[index0] = m_real(bat_s1r[0], bat_s1j[0],   rimd0, jimd0)+
-                    m_real(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
-                    m_real(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
-                    m_real(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
-            FFT_j[index0] = m_im(bat_s1r[0], bat_s1j[0], rimd0, jimd0)+
-                    m_im(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
-                    m_im(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
-                    m_im(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
-
-            FFT_r[index1] = m_real(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
-                    m_real(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
-                    m_real(bat_s2r[2], bat_s2j[2],  rimd2, jimd2)+
-                    m_real(bat_s2r[3], bat_s2j[3], rimd3, jimd3);
-            FFT_j[index1] = m_im(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
-                    m_im(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
-                    m_im(bat_s2r[2], bat_s2j[2], rimd2, jimd2)+
-                    m_im(bat_s2r[3], bat_s2j[3], rimd3, jimd3);
-
-            FFT_r[index2] = m_real(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
-                    m_real(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
-                    m_real(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
-                    m_real(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
-            FFT_j[index2] = m_im(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
-                    m_im(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
-                    m_im(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
-                    m_im(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
-
-            FFT_r[index3] = m_real(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
-                    m_real(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
-                    m_real(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
-                    m_real(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
-            FFT_j[index3] = m_im(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
-                    m_im(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
-                    m_im(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
-                    m_im(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
-
-            rimd0=FFT_r[index0];
-            jimd0=FFT_j[index0];
-
-
-            rimd1=FFT_r[index1];
-            jimd1=FFT_j[index1];
-
-
-            rimd2=FFT_r[index2];
-            jimd2=FFT_j[index2];
-
-
-            rimd3=FFT_r[index3];
-            jimd3=FFT_j[index3];
-
-            FFT_r[index0] = m_real(rimd0, jimd0, exp_r[index0], exp_j[index0]);
-            FFT_j[index0] = m_im(rimd0, jimd0, exp_r[index0], exp_j[index0]);
-
-            FFT_r[index1] = m_real(rimd1, jimd1, exp_r[index1], exp_j[index1]);
-            FFT_j[index1] = m_im(rimd1, jimd1, exp_r[index1], exp_j[index1]);
-
-            FFT_r[index2] = m_real(rimd2, jimd2, exp_r[index2], exp_j[index2]);
-            FFT_j[index2] = m_im(rimd2, jimd2, exp_r[index2], exp_j[index2]);
-
-            FFT_r[index3] = m_real(rimd3, jimd3, exp_r[index3], exp_j[index3]);
-            FFT_j[index3] = m_im(rimd3, jimd3, exp_r[index3], exp_j[index3]);
+    // Frame forming stage (getting data for analysis)
+    for (i=0; i<POINTS; i++){
+        fft_r[i]=i; // Put sample into array
+        fft_j[i]=0;
     }
 
-/*
-for (kk=0; kk<64; kk+=16){
-    for (i=0; i<16; i++){
-        ear[i+kk]=exp_r[4*i];
-        eaj[i+kk]=exp_j[4*i];
+    // FFT begins ...
+    for (n=0; n<64; n++){
+
+        if (POINTS!=256) break;
+
+        index0 = n;
+        index1 = index0+64;
+        index2 = index1+64;
+        index3 = index2+64;
+
+		rimd0 = fft_r[index0];
+		jimd0 = fft_j[index0];
+		rimd1 = fft_r[index1];
+		jimd1 = fft_j[index1];
+		rimd2 = fft_r[index2];
+		jimd2 = fft_j[index2];
+		rimd3 = fft_r[index3];
+		jimd3 = fft_j[index3];
+
+        // "Dragonfly" operations
+        fft_r[index0] = rimd0 + rimd1 + rimd2 + rimd3;
+        fft_j[index0] = jimd0 + jimd1 + jimd2 + jimd3;
+
+        fft_r[index1] = rimd0 + jimd1 - rimd2 - jimd3;
+        fft_j[index1] = jimd0 - rimd1 - jimd2 + rimd3;
+
+        fft_r[index2] = rimd0 - rimd1 + rimd2 - rimd3;
+        fft_j[index2] = jimd0 - jimd1 + jimd2 - jimd3;
+
+        fft_r[index3] = rimd0 - jimd1 - rimd2 + jimd3;
+        fft_j[index3] = jimd0 + rimd1 - jimd2 - rimd3;
+
+                
+        rimd0 = fft_r[index0];
+        jimd0 = fft_j[index0];
+        rimd1 = fft_r[index1];
+        jimd1 = fft_j[index1];
+        rimd2 = fft_r[index2];
+        jimd2 = fft_j[index2];
+        rimd3 = fft_r[index3];
+        jimd3 = fft_j[index3];
+
+        // Multiply on complex expornents
+        fft_r[index0] = rimd0 * exp_r[index0+64] - jimd0 * exp_j[index0+64];
+        fft_j[index0] = rimd0 * exp_j[index0+64] + jimd0 * exp_r[index0+64];
+        fft_r[index1] = rimd1 * exp_r[index1+64] - jimd1 * exp_j[index1+64];
+        fft_j[index1] = rimd1 * exp_j[index1+64] + jimd1 * exp_r[index1+64];
+        fft_r[index2] = rimd2 * exp_r[index2+64] - jimd2 * exp_j[index2+64];
+        fft_j[index2] = rimd2 * exp_j[index2+64] + jimd2 * exp_r[index2+64];
+        fft_r[index3] = rimd3 * exp_r[index3+64] - jimd3 * exp_j[index3+64];
+        fft_j[index3] = rimd3 * exp_j[index3+64] + jimd3 * exp_r[index3+64];
     }
-}*/
 
-    // Perform second stage
-    for (kk=0; kk<N; kk+=16){
-        
-        for (step=1; step<=4; step*=4)
-        { 
-            for (n=0; n<4; n++){
-                    index0 = 0/step+n*step+kk;
-                    index1 = 4/step+n*step+kk;
-                    index2 = 8/step+n*step+kk;
-                    index3 = 12/step+n*step+kk;
+    for (shift=0; shift<256; shift+=64+jumpto64){
+        // Sequently perform 64 point fft for 8 times
+        for (count=4; count>=1; count-=3){
+            // Perform second stage when count = 4.
+            for (kk=0; kk<64/count; kk+=16+jumpto16){
+                // Perform third stage when count = 1, step = 1.
+                for (step=1; step<=4/count; step+=3){
+                    // Perform fourth stage when count = 1, step = 4.
+                    mult = count*4/step;
+                    for (n=0; n<4*count; n++){
 
-                    rimd0 = FFT_r[index0];
-                    jimd0 = FFT_j[index0];
-                    rimd1 = FFT_r[index1];
-                    jimd1 = FFT_j[index1];
-                    rimd2 = FFT_r[index2];
-                    jimd2 = FFT_j[index2];
-                    rimd3 = FFT_r[index3];
-                    jimd3 = FFT_j[index3];
+                            dis=n * step + kk + shift;
 
-                    FFT_r[index0] = m_real(bat_s1r[0], bat_s1j[0],   rimd0, jimd0)+
-                            m_real(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
-                            m_real(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
-                            m_real(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
-                    FFT_j[index0] = m_im(bat_s1r[0], bat_s1j[0], rimd0, jimd0)+
-                            m_im(bat_s1r[1], bat_s1j[1], rimd1, jimd1)+
-                            m_im(bat_s1r[2], bat_s1j[2], rimd2, jimd2)+
-                            m_im(bat_s1r[3], bat_s1j[3], rimd3, jimd3);
+                            index0 = dis;
+                            index1 = index0+mult;
+                            index2 = index1+mult;
+                            index3 = index2+mult;
 
-                    FFT_r[index1] = m_real(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
-                            m_real(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
-                            m_real(bat_s2r[2], bat_s2j[2], rimd2, jimd2)+
-                            m_real(bat_s2r[3], bat_s2j[3],  rimd3, jimd3);
-                    FFT_j[index1] = m_im(bat_s2r[0], bat_s2j[0], rimd0, jimd0)+
-                            m_im(bat_s2r[1], bat_s2j[1], rimd1, jimd1)+
-                            m_im(bat_s2r[2], bat_s2j[2], rimd2, jimd2)+
-                            m_im(bat_s2r[3], bat_s2j[3], rimd3, jimd3);
+                            rimd0 = fft_r[index0];
+                            jimd0 = fft_j[index0];
+                            rimd1 = fft_r[index1];
+                            jimd1 = fft_j[index1];
+                            rimd2 = fft_r[index2];
+                            jimd2 = fft_j[index2];
+                            rimd3 = fft_r[index3];
+                            jimd3 = fft_j[index3];
 
-                    FFT_r[index2] = m_real(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
-                            m_real(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
-                            m_real(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
-                            m_real(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
-                    FFT_j[index2] = m_im(bat_s3r[0], bat_s3j[0], rimd0, jimd0)+
-                            m_im(bat_s3r[1], bat_s3j[1], rimd1, jimd1)+
-                            m_im(bat_s3r[2], bat_s3j[2], rimd2, jimd2)+
-                            m_im(bat_s3r[3], bat_s3j[3], rimd3, jimd3);
+                            // "Dragonfly" operations
+                            fft_r[index0] = rimd0 + rimd1 + rimd2 + rimd3;
+                            fft_j[index0] = jimd0 + jimd1 + jimd2 + jimd3;
 
-                    FFT_r[index3] = m_real(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
-                            m_real(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
-                            m_real(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
-                            m_real(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
-                    FFT_j[index3] = m_im(bat_s4r[0], bat_s4j[0], rimd0, jimd0)+
-                            m_im(bat_s4r[1], bat_s4j[1], rimd1, jimd1)+
-                            m_im(bat_s4r[2], bat_s4j[2], rimd2, jimd2)+
-                            m_im(bat_s4r[3], bat_s4j[3], rimd3, jimd3);
+                            fft_r[index1] = rimd0 + jimd1 - rimd2 - jimd3;
+                            fft_j[index1] = jimd0 - rimd1 - jimd2 + rimd3;
 
-                    // Multiply on complex expornents
-                    if (step!=4){
-                            
-                        rimd0=FFT_r[index0];
-                        jimd0=FFT_j[index0];
+                            fft_r[index2] = rimd0 - rimd1 + rimd2 - rimd3;
+                            fft_j[index2] = jimd0 - jimd1 + jimd2 - jimd3;
 
+                            fft_r[index3] = rimd0 - jimd1 - rimd2 + jimd3;
+                            fft_j[index3] = jimd0 + rimd1 - jimd2 - rimd3;
 
-                        rimd1=FFT_r[index1];
-                        jimd1=FFT_j[index1];
+                            // Multiply on complex expornents
+                            if (step!=4){                                
+                                rimd0 = fft_r[index0];
+                                jimd0 = fft_j[index0];
+                                rimd1 = fft_r[index1];
+                                jimd1 = fft_j[index1];
+                                rimd2 = fft_r[index2];
+                                jimd2 = fft_j[index2];
+                                rimd3 = fft_r[index3];
+                                jimd3 = fft_j[index3];
 
+                                if (count==4){ 
+                                    dis = 0; 
+                                }
+                                else{ 
+                                    dis=d-kk; 
+                                }
+                                dis-=shift;
 
-                        rimd2=FFT_r[index2];
-                        jimd2=FFT_j[index2];
-
-
-                        rimd3=FFT_r[index3];
-                        jimd3=FFT_j[index3];
-
-                        FFT_r[index0] = m_real(rimd0, jimd0, exp_r[index0+d-kk], exp_j[index0+d-kk]);
-                        FFT_j[index0] = m_im(rimd0, jimd0, exp_r[index0+d-kk], exp_j[index0+d-kk]);
-
-                        FFT_r[index1] = m_real(rimd1, jimd1, exp_r[index1+d-kk], exp_j[index1+d-kk]);
-                        FFT_j[index1] = m_im(rimd1, jimd1, exp_r[index1+d-kk], exp_j[index1+d-kk]);
-
-                        FFT_r[index2] = m_real(rimd2, jimd2, exp_r[index2+d-kk], exp_j[index2+d-kk]);
-                        FFT_j[index2] = m_im(rimd2, jimd2, exp_r[index2+d-kk], exp_j[index2+d-kk]);
-
-                        FFT_r[index3] = m_real(rimd3, jimd3, exp_r[index3+d-kk], exp_j[index3+d-kk]);
-                        FFT_j[index3] = m_im(rimd3, jimd3, exp_r[index3+d-kk], exp_j[index3+d-kk]);
-                        
-                        d+=15;
+                                fft_r[index0] = rimd0 * exp_r[index0+dis] - jimd0 * exp_j[index0+dis];
+                                fft_j[index0] = rimd0 * exp_j[index0+dis] + jimd0 * exp_r[index0+dis];
+                                fft_r[index1] = rimd1 * exp_r[index1+dis] - jimd1 * exp_j[index1+dis];
+                                fft_j[index1] = rimd1 * exp_j[index1+dis] + jimd1 * exp_r[index1+dis];
+                                fft_r[index2] = rimd2 * exp_r[index2+dis] - jimd2 * exp_j[index2+dis];
+                                fft_j[index2] = rimd2 * exp_j[index2+dis] + jimd2 * exp_r[index2+dis];
+                                fft_r[index3] = rimd3 * exp_r[index3+dis] - jimd3 * exp_j[index3+dis];
+                                fft_j[index3] = rimd3 * exp_j[index3+dis] + jimd3 * exp_r[index3+dis];
+                                d+=15;
+                            }
                     }
+                    d=0;
+                }
             }
-            d=0;
         }
     }
 
-
-    for (i=0; i<N; i++){
-        FFT_j[i]=sqrt(FFT_r[i]*FFT_r[i]+FFT_j[i]*FFT_j[i]);
+    // fft end.
+    // Calculate amplitude spectrum.
+    for  (i=0; i<POINTS; i++){
+    	fft_j[i] = sqrt(fft_r[i] * fft_r[i] + fft_j[i] * fft_j[i]);
     }
 
-    // Sort stage 
-    kk=0;
-    step=0;
-    while(kk<N){
-        for (i=0+step; i<4+step; i++){
-            FFT_r[4*i]=FFT_j[4*i-kk];
-            FFT_r[4*i+1]=FFT_j[4*i+16-kk];
-            FFT_r[4*i+2]=FFT_j[4*i+32-kk];
-            FFT_r[4*i+3]=FFT_j[4*i+48-kk];
+    // Sort stage.
+    for (kk = 0; kk < 64; kk +=16 + jumpto16){
+        for (shift = 0; shift < 256; shift += 64 + jumpto64){
+        	for (i = 0; i < 4; i++){
+                index0 = 4 * i + shift + kk;
+                index1 = i * POINTS /16 + d;
+        		fft_r[index0] = fft_j[index1];
+        		fft_r[index0 + 1] = fft_j[index1 + POINTS / 4];
+        		fft_r[index0 + 2] = fft_j[index1 + 2 * POINTS / 4];
+        		fft_r[index0 + 3] = fft_j[index1 + 3 * POINTS / 4];
+            }
+            d++;
         }
-        step+=4;
-        kk+=15;
     }
 
     // See results
-    for (i=0; i<N; i++)
-    {
-        printf(" %f\n", FFT_r[i]);
+    for (i = 0; i < POINTS; i++){
+        printf("  %f\n", fft_r[i]);
     }
 
-    getch();
     return 0;
 }

@@ -1,4 +1,4 @@
 # FFT-radix-4
-64-point FFT radix-4 Algorithm
-Script performs 64-point FFT radix-4 Algorithm. 
-Input and output data represents in arrays. Output data is unsorted!
+4-256-point FFT radix-4 Algorithm
+Script performs 256-point FFT radix-4 Algorithm. 
+Output data is sorted.
